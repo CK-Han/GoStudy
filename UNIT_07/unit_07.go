@@ -1,11 +1,11 @@
 package main
 
-import _ "fmt"
+import _ "fmt" // 사용하지 않는 패키지 컴파일 에러 방지
 
 func main() {
 	var i int
 	i = 3
-	var s string = "cacaca"
+	var s = "cacaca"
 	var k = 35.5
 	j := 33
 
