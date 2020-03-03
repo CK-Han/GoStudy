@@ -16,8 +16,8 @@ func main() {
 	//useCondition()
 	//useOnce()
 	//usePool()
-	//useWaitGroup()
-	useAtomic()
+	useWaitGroup()
+	//useAtomic()
 }
 
 func appendFunc() {
@@ -52,21 +52,21 @@ func appendWithMutex() {
 	mutex := new(sync.Mutex)
 
 	go func() {
+		mutex.Lock()
 		for i := 0; i < 1000; i++ {
-			mutex.Lock()
 			arr = append(arr, 1)
-			mutex.Unlock()
-			runtime.Gosched() // cpu 양보
 		}
+		mutex.Unlock()
+		runtime.Gosched() // cpu 양보
 	}()
 
 	go func() {
+		mutex.Lock()
 		for i := 0; i < 1000; i++ {
-			mutex.Lock()
 			arr = append(arr, 1)
-			mutex.Unlock()
-			runtime.Gosched() // cpu 양보
 		}
+		mutex.Unlock()
+		runtime.Gosched() // cpu 양보
 	}()
 
 	time.Sleep(time.Second * 2)
@@ -118,34 +118,36 @@ func useCondition() {
 
 	mutex := new(sync.Mutex)
 	cond := sync.NewCond(mutex)
+	count := 30
 
-	c := make(chan bool, 3)
+	c := make(chan bool, count)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < count; i++ {
 		go func(n int) {
 			mutex.Lock()
 			c <- true
 			fmt.Println("wait begin :", n)
-			cond.Wait() // 조건변수 대기, 이 때 내부에서 등록했던 잠금객체를 unlock 하고 대기하네
+			cond.Wait() // 조건변수 대기, 이 때 내부에서 등록했던 잠금객체를 unlock 하고 대기, 시그널시 다시 잠금(함수정의 보기)
 			fmt.Println("wait end :", n)
 			mutex.Unlock()
 		}(i)
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < count; i++ {
 		<-c // 3개가 모두 wait 상태로 갈때까지 대기
 	}
 
-	for i := 0; i < 3; i++ {
-		mutex.Lock()
-		fmt.Println("signal : ", i)
-		cond.Signal()
-		mutex.Unlock()
-	}
+	//for i := 0; i < count; i++ {
+	//	mutex.Lock()
+	//	fmt.Println("signal : ", i)
+	//	cond.Signal()
+	//	mutex.Unlock()
+	//}
 
-	//mutex.Lock()
-	//cond.Broadcast()
-	//mutex.Unlock()
+	mutex.Lock()
+	fmt.Println("broadcast")
+	cond.Broadcast()
+	mutex.Unlock()
 
 	fmt.Scanln()
 }
@@ -155,7 +157,7 @@ func useOnce() {
 
 	once := new(sync.Once)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 50; i++ {
 		go func(n int) {
 			fmt.Println("goroutine : ", n)
 			once.Do(func() {
